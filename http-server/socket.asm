@@ -77,59 +77,63 @@ read:
 
 
 getRequestResourcePath: ;;获取请求资源路径
-    mov eax,requestBuffer
-    mov ebx,eax
+    mov     eax,requestBuffer
+    mov     ebx,eax
+    
 nextResourceChar:    
-    cmp byte[ebx],32    ;;如果是空格
-    jz record           ;;开始记录
-    inc ebx             ;;下一个字符
-    jmp nextResourceChar 
+    cmp     byte[ebx],32    ;;如果是空格
+    jz      record           ;;开始记录
+    inc     ebx             ;;下一个字符
+    jmp     nextResourceChar 
     ret
+    
 record: 
-    mov edx,ebx     ;;ebx是第一个空格后的位置
-    sub edx,eax     ;存放开始索引
-    mov ecx, requestBuffer
-    add ecx,edx         ;;从ecx后的位置开始查看地一个空格
-    mov edx,0
+    mov     edx,ebx     ;;ebx是第一个空格后的位置
+    sub     edx,eax     ;存放开始索引
+    mov     ecx, requestBuffer
+    add     ecx,edx         ;;从ecx后的位置开始查看地一个空格
+    mov     edx,0
+    
 hasEnd:
-    inc ecx
-    cmp byte[ecx],32  ;;如果下一个也是空格
-    jz finishSearch
+    inc     ecx
+    cmp     byte[ecx],32  ;;如果下一个也是空格
+    jz      finishSearch
     
-    mov eax, dword[ecx]   ;;获取当前字符
-    mov dword[requestPath+edx],eax
-    inc edx
-    jmp hasEnd
+    mov     eax, dword[ecx]   ;;获取当前字符
+    mov     dword[requestPath+edx],eax
+    inc     edx
+    jmp     hasEnd
+    
 finishSearch:
-    push esi
-    mov esi,root
-    mov edi,fullPath
-    mov ecx,20
-    rep movsb   ;;复制root
+    push    esi
+    mov     esi,root
+    mov     edi,fullPath
+    mov     ecx,20
+    rep     movsb   ;;复制root
     
-    mov esi,requestPath 
-    mov edi,fullPath
-    add edi,20
-    mov ecx,edx
-    rep movsb
-    pop esi
+    mov     esi,requestPath 
+    mov     edi,fullPath
+    add     edi,20
+    mov     ecx,edx
+    rep     movsb
+    pop     esi
    
 write:
-    push esi
+    push    esi
 
-    mov edi,responseBuffer      ;;字符复制目的地址
-    mov esi,headers             ;;字符复制原地址
-    mov ecx,59                  ;;复制59个字节到响应buffer中
-    rep movsb
+    mov     edi,responseBuffer      ;;字符复制目的地址
+    mov     esi,headers             ;;字符复制原地址
+    mov     ecx,59                  ;;复制59个字节到响应buffer中
+    rep     movsb
     
-    call readFile               ;;读取文件
-    mov edi,responseBuffer+59  ;;偏移59个字节拼接body
-    mov esi,fileContents
+    call    readFile               ;;读取文件
+    mov     edi,responseBuffer+59  ;;偏移59个字节拼接body
+    mov     esi,fileContents
 
-    mov ecx,eax
-    rep movsb               ;;在复制n个字节，eax是读取到的字节数量，不固定
+    mov     ecx,eax
+    rep     movsb               ;;在复制n个字节，eax是读取到的字节数量，不固定
     
-    pop esi
+    pop     esi
 
     mov     edx, eax     ;;文件内容长度
     add     edx,59       ;;加上头部长度
