@@ -5,7 +5,16 @@ global CMAIN
 CMAIN:
     mov ebp, esp; for correct debugging
     ;write your code here
+    mov eax,55
+    push    eax
 
+    mov     edx,1
+    mov     ecx,esp
+    mov     ebx,1
+    mov     eax,4
+    int     80h
+    
+    
     push    2
     push    2
     push    2

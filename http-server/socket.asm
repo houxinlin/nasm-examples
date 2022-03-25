@@ -1,18 +1,23 @@
-
+%include "/home/HouXinLin/project/nasm/include/io.inc"
 SECTION .data
     headers db 'HTTP/1.1 200 OK', 0Dh, 0Ah, 'Content-Type: application/octet-stream', 0Dh, 0Ah, 0Dh, 0Ah
     root db '/home/HouXinLin/test', 0h 
-
+    msg  db 'accept',0h
+    ok  db 'ok',0h
+    fail  db 'fail',0h
+    SO_REUSEADDR  db 1,0h
 SECTION .bss
     fileContents resb 40960
     responseBuffer resb 40960
     requestBuffer resb 4096
     fullPath resb 1024
     requestPath resb 1024
+    socketbuf    resb    4
+
 SECTION .text
-global  _start
+global  CMAIN
  
-_start:
+CMAIN:
     mov ebp, esp
  
     xor     eax, eax
@@ -29,10 +34,22 @@ socket:
     mov     ebx, 1
     mov     eax, 102
     int     80h    ;;创建Socket
+   
  
 bind:
- 
-    mov     edi, eax 
+    push eax
+   
+    mov  edi,4
+    mov  esi,SO_REUSEADDR
+    mov  edx,2
+    mov  ecx,1
+    mov  ebx,eax
+    mov  eax,366
+    int  80h
+    
+    pop eax
+    mov     edi, eax ;;edi存放server socket描述副
+    
     push    dword 0x00000000
     push    word 0x901f    ;;端口8080
     push    word 2
@@ -44,6 +61,9 @@ bind:
     mov     ebx, 2
     mov     eax, 102
     int     80h         ;;绑定8080端口
+    cmp     eax,0
+    je      listen
+    jmp     exit
  
 listen:
  
@@ -65,10 +85,23 @@ accept:
     int     80h
  
     mov     esi, eax          ;;将客户端描述符保存到esi中
+    
+    
+    mov     eax, 2
+    int     80h
 
+    cmp     eax, 0
+    jz      read
+
+    jmp     accept
  
 read:
- 
+    mov     edx,6
+    mov     ecx,msg
+    mov     ebx,1
+    mov     eax,4
+    int     80h
+    
     mov     edx, 4096          ;;读取客户端内容
     mov     ecx, requestBuffer
     mov     ebx, esi
@@ -137,11 +170,33 @@ write:
 
     mov     edx, eax     ;;文件内容长度
     add     edx,59       ;;加上头部长度
+    mov     eax,edx
+
     mov     ecx, responseBuffer    ;;输出
     mov     ebx, esi 
     mov     eax, 4  
     int     80h 
-    call    exit
+    
+
+    
+    ;;关闭客户端socket
+
+    push    2
+    push    esi
+    mov     ecx, esp
+    mov     ebx, 13
+    mov     eax, 102
+    int     80h
+    
+    cmp     eax,0
+    jz      exit
+    
+    mov     edx,4
+    mov     ecx,fail
+    mov     ebx,1
+    mov     eax,4
+    int     80h
+    jmp     exit
     
 readFile:
     mov     ecx, 4           ;;打开文件
@@ -149,7 +204,7 @@ readFile:
     mov     eax, 5
     int     80h
     
-    mov     edx, 40960         ;;尝试读取4096个字节到fileContents
+    mov     edx, 40960         ;;尝试读取40960个字节到fileContents
     mov     ecx, fileContents  
     mov     ebx, eax 
     mov     eax, 3  
@@ -157,8 +212,7 @@ readFile:
     ret
     
 exit:
- 
-    mov ebx,0
-    mov eax,1
-    int 80h
-    
+  
+    mov     ebx,0
+    mov     eax,1
+    int     80h
