@@ -1,6 +1,7 @@
 %include "/home/HouXinLin/project/nasm/include/io.inc"
 SECTION .data
     headers db 'HTTP/1.1 200 OK', 0Dh, 0Ah, 'Content-Type: application/octet-stream', 0Dh, 0Ah, 0Dh, 0Ah
+    notfound_response db 'HTTP/1.1 404 OK', 0Dh, 0Ah, 'Content-Type: text/html', 0Dh, 0Ah, 'Content-Length: 10', 0Dh, 0Ah, 0Dh, 0Ah, 'not found!', 0Dh, 0Ah, 0h
     root db '/home/HouXinLin/test', 0h 
     msg  db 'accept',0h
     ok  db 'ok',0h
@@ -85,16 +86,14 @@ accept:
     int     80h
  
     mov     esi, eax          ;;将客户端描述符保存到esi中
-    
-    
+
+
     mov     eax, 2
     int     80h
-
     cmp     eax, 0
     jz      read
-
     jmp     accept
- 
+    
 read:
     mov     edx,6
     mov     ecx,msg
@@ -151,34 +150,45 @@ finishSearch:
     rep     movsb
     pop     esi
    
+
+openFile:
+    mov     ecx, 4           ;;打开文件
+    mov     ebx, fullPath
+    mov     eax, 5
+    int     80h
+    cmp     eax,0
+    jl      notfound
+    push    eax         ;;保存文件描述符
+
 write:
-    push    esi
 
-    mov     edi,responseBuffer      ;;字符复制目的地址
-    mov     esi,headers             ;;字符复制原地址
-    mov     ecx,59                  ;;复制59个字节到响应buffer中
-    rep     movsb
-    
-    call    readFile               ;;读取文件
-    mov     edi,responseBuffer+59  ;;偏移59个字节拼接body
-    mov     esi,fileContents
-
-    mov     ecx,eax
-    rep     movsb               ;;在复制n个字节，eax是读取到的字节数量，不固定
-    
-    pop     esi
-
-    mov     edx, eax     ;;文件内容长度
-    add     edx,59       ;;加上头部长度
-    mov     eax,edx
-
-    mov     ecx, responseBuffer    ;;输出
+    mov     edx,59
+    mov     ecx, headers    ;;输出头
     mov     ebx, esi 
     mov     eax, 4  
     int     80h 
     
-
-    
+hasNext:  
+    pop     eax         ;;文件描述符传递给readFile
+    push    eax
+    call    readFile      ;;调用之后eax保存读取的大小，fileContents保存文件内容
+    push    eax
+    mov     edx,eax
+    mov     ecx, fileContents    ;;输出内容
+    mov     ebx, esi 
+    mov     eax, 4  
+    int     80h 
+    pop     eax             ;;读取的文件字节数
+    cmp     eax,0
+    jz      closeSocket
+    jmp     hasNext
+notfound:
+    mov     edx,76
+    mov     ecx, notfound_response    ;;输出头
+    mov     ebx, esi 
+    mov     eax, 4  
+    int     80h 
+closeSocket:
     ;;关闭客户端socket
 
     push    2
@@ -196,21 +206,14 @@ write:
     mov     ebx,1
     mov     eax,4
     int     80h
-    jmp     exit
-    
+    jmp     exit    
 readFile:
-    mov     ecx, 4           ;;打开文件
-    mov     ebx, fullPath
-    mov     eax, 5
-    int     80h
-    
     mov     edx, 40960         ;;尝试读取40960个字节到fileContents
     mov     ecx, fileContents  
     mov     ebx, eax 
     mov     eax, 3  
-    int     80h         ;读取
+    int     80h                 ;读取    
     ret
-    
 exit:
   
     mov     ebx,0
