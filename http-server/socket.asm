@@ -1,31 +1,43 @@
-%include "/home/HouXinLin/project/nasm/include/io.inc"
+
+%include "utils.asm"
+
 SECTION .data
-    headers db 'HTTP/1.1 200 OK', 0Dh, 0Ah, 'Content-Type: application/octet-stream', 0Dh, 0Ah, 0Dh, 0Ah
+    headers db 'HTTP/1.1 200 OK', 0Dh, 0Ah,'Content-Type: application/octet-stream',0Dh, 0Ah,'Content-Length:',0h
+    header_end db 0Dh, 0Ah, 0Dh, 0Ah,0h
     notfound_response db 'HTTP/1.1 404 OK', 0Dh, 0Ah, 'Content-Type: text/html', 0Dh, 0Ah, 'Content-Length: 10', 0Dh, 0Ah, 0Dh, 0Ah, 'not found!', 0Dh, 0Ah, 0h
     root db '/home/HouXinLin/test', 0h 
     msg  db 'accept',0h
     ok  db 'ok',0h
     fail  db 'fail',0h
     SO_REUSEADDR  db 1,0h
+   
+    
+
 SECTION .bss
-    fileContents resb 40960
+    headersBuffer resb  4096
+    fileContents resb   40960
     responseBuffer resb 40960
-    requestBuffer resb 4096
-    fullPath resb 1024
-    requestPath resb 1024
+    requestBuffer resb  4096
+    fullPath resb       1024
+    requestPath resb    1024
     socketbuf    resb    4
+    
+
+    buffer resb 1024
+    statStructBuffer resb 144
 
 SECTION .text
 global  CMAIN
  
 CMAIN:
-    mov ebp, esp
- 
+    mov ebp, esp; for correct debugging
+
     xor     eax, eax
     xor     ebx, ebx
     xor     edi, edi
     xor     esi, esi
- 
+
+    
 socket:
  
     push    byte 6 
@@ -36,7 +48,6 @@ socket:
     mov     eax, 102
     int     80h    ;;创建Socket
    
- 
 bind:
     push eax
    
@@ -161,9 +172,20 @@ openFile:
     push    eax         ;;保存文件描述符
 
 write:
+    push    eax
+    push    esi
+    mov     edx,fullPath
+    call    getFileSize                 ;获取文件大小，结果保存到eax中
+    call    loadBaseHeaderToBuffer      ;家在header buffer用来拼接
+    call    setBodyContentLength        ;设置body大小
+   
+    mov     edx,eax
+    add     edx,76      ;其中72个字节是头信息，4个字节是body和header之间的分割符号
+    
+    pop     esi
+    pop     eax
 
-    mov     edx,59
-    mov     ecx, headers    ;;输出头
+    mov     ecx, headersBuffer    ;;首先输出头
     mov     ebx, esi 
     mov     eax, 4  
     int     80h 
@@ -180,6 +202,7 @@ hasNext:
     int     80h 
     pop     eax             ;;读取的文件字节数
     cmp     eax,0
+    call    closeFile
     jz      closeSocket
     jmp     hasNext
 notfound:
@@ -214,8 +237,14 @@ readFile:
     mov     eax, 3  
     int     80h                 ;读取    
     ret
+closeFile:
+    mov     ebx,eax
+    mov     eax,6    
+    int     80h
+    ret
 exit:
   
     mov     ebx,0
     mov     eax,1
     int     80h
+
