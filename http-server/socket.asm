@@ -1,8 +1,9 @@
-
-%include "utils.asm"
+%include "/home/HouXinLin/project/nasm/include/io.inc"
+%include "/home/HouXinLin/project/nasm/nasm-examples/http-server/utils.asm"
+%include "/home/HouXinLin/project/nasm/nasm-examples/http-server/media.asm"
 
 SECTION .data
-    headers db 'HTTP/1.1 200 OK', 0Dh, 0Ah,'Content-Type: application/octet-stream',0Dh, 0Ah,'Content-Length:',0h
+    headers db 'HTTP/1.1 200 OK',0Dh, 0Ah,'Content-Length:',0h
     header_end db 0Dh, 0Ah, 0Dh, 0Ah,0h
     notfound_response db 'HTTP/1.1 404 OK', 0Dh, 0Ah, 'Content-Type: text/html', 0Dh, 0Ah, 'Content-Length: 10', 0Dh, 0Ah, 0Dh, 0Ah, 'not found!', 0Dh, 0Ah, 0h
     root db '/home/HouXinLin/test', 0h 
@@ -10,8 +11,9 @@ SECTION .data
     ok  db 'ok',0h
     fail  db 'fail',0h
     SO_REUSEADDR  db 1,0h
-   
-    
+    response_header_content_type db 'Content-Type:',0h
+    header_line db 0Dh, 0Ah,0h
+    default_media db 'application/octet-stream',0h
 
 SECTION .bss
     headersBuffer resb  4096
@@ -21,7 +23,7 @@ SECTION .bss
     fullPath resb       1024
     requestPath resb    1024
     socketbuf    resb    4
-    
+    suffixBuffer resb 10
 
     buffer resb 1024
     statStructBuffer resb 144
@@ -52,7 +54,7 @@ bind:
     push eax
    
     mov  edi,4
-    mov  esi,SO_REUSEADDR
+    mov  esi,SO_REUSEADDR   
     mov  edx,2
     mov  ecx,1
     mov  ebx,eax
@@ -176,11 +178,10 @@ write:
     push    esi
     mov     edx,fullPath
     call    getFileSize                 ;获取文件大小，结果保存到eax中
-    call    loadBaseHeaderToBuffer      ;家在header buffer用来拼接
+    call    loadBaseHeaderToBuffer      ;加载header buffer用来拼接
     call    setBodyContentLength        ;设置body大小
-   
     mov     edx,eax
-    add     edx,76      ;其中72个字节是头信息，4个字节是body和header之间的分割符号
+    add     edx,36      ;其中32个字节是头信息，4个字节是body和header之间的分割符号
     
     pop     esi
     pop     eax
@@ -242,6 +243,7 @@ closeFile:
     mov     eax,6    
     int     80h
     ret
+
 exit:
   
     mov     ebx,0
