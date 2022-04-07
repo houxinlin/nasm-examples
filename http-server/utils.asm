@@ -1,3 +1,40 @@
+loadBindRoot:
+    mov esi ,[esp+16]
+    call getStringLength
+    mov ecx,eax
+    mov edi,root
+    rep    movsb
+    ret
+loadBindPort:
+    mov esi,[esp+12]   ;;从启动参数中加载端口
+    call reversal     ;;反转端口字节
+    ret
+
+reversal:
+    call toInt
+    mov ebx,0
+    mov bh,al
+    mov bl,ah
+    ret
+toInt:
+    mov eax,0
+    mov ecx,0
+_nextToInt:    
+    cmp byte[esi+ecx],0    
+    je _finishToInt
+    mov edx,0
+    mov dl, [esi+ecx]
+    sub dl,48  ;;edx中保存当前ascii转换的数组
+    push edx
+    mov ebx,10
+    mul ebx
+    pop edx
+    add eax,edx
+    inc ecx
+    jmp _nextToInt
+_finishToInt:
+    ret                
+    
 getFileSize:
     mov     ecx ,statStructBuffer
     mov     ebx,edx

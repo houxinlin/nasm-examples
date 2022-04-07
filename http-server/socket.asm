@@ -1,4 +1,4 @@
-%include "/home/HouXinLin/project/nasm/include/io.inc"
+;%include "/home/HouXinLin/project/nasm/include/io.inc"
 %include "/home/HouXinLin/project/nasm/nasm-examples/http-server/utils.asm"
 %include "/home/HouXinLin/project/nasm/nasm-examples/http-server/media.asm"
 
@@ -6,7 +6,7 @@ SECTION .data
     headers db 'HTTP/1.1 200 OK',0Dh, 0Ah,'Content-Length:',0h
     header_end db 0Dh, 0Ah, 0Dh, 0Ah,0h
     notfound_response db 'HTTP/1.1 404 OK', 0Dh, 0Ah, 'Content-Type: text/html', 0Dh, 0Ah, 'Content-Length: 10', 0Dh, 0Ah, 0Dh, 0Ah, 'not found!', 0Dh, 0Ah, 0h
-    root db '/home/HouXinLin/test', 0h 
+ 
     msg  db 'accept',0h
     ok  db 'ok',0h
     fail  db 'fail',0h
@@ -14,32 +14,40 @@ SECTION .data
     response_header_content_type db 'Content-Type:',0h
     header_line db 0Dh, 0Ah,0h
     default_media db 'application/octet-stream',0h
+    default_port db "8080",0h
+    default_path db "/home/HouXinLin/www/",0h
 
 SECTION .bss
-    headersBuffer resb  4096
-    fileContents resb   40960
-    responseBuffer resb 40960
-    requestBuffer resb  4096
-    fullPath resb       1024
-    requestPath resb    1024
-    socketbuf    resb    4
-    suffixBuffer resb 10
-
-    buffer resb 1024
+    headersBuffer    resb 4096
+    fileContents     resb 40960
+    responseBuffer   resb 40960
+    requestBuffer    resb 4096
+    fullPath         resb 1024
+    requestPath      resb 1024
+    socketbuf        resb 4
+    suffixBuffer     resb 10
+    root             resb   1024
+    buffer           resb 1024
     statStructBuffer resb 144
-
+    port             resb  4
 SECTION .text
 global  CMAIN
  
 CMAIN:
     mov ebp, esp; for correct debugging
-
     xor     eax, eax
     xor     ebx, ebx
     xor     edi, edi
     xor     esi, esi
 
-    
+    ;push   default_path
+    ;push   default_port
+    ;push   default_media
+    ;push   3
+ 
+    call   loadBindPort
+    mov   dword[port],ebx
+    call   loadBindRoot
 socket:
  
     push    byte 6 
@@ -65,7 +73,7 @@ bind:
     mov     edi, eax ;;edi存放server socket描述副
     
     push    dword 0x00000000
-    push    word 0x901f    ;;端口8080
+    push    word [port]    ;;端口
     push    word 2
     mov     ecx, esp
     push    byte 16
@@ -104,8 +112,8 @@ accept:
     mov     eax, 2
     int     80h
     cmp     eax, 0
-    jz      read
-    jmp     accept
+   jz      read
+   jmp     accept
     
 read:
     mov     edx,6
@@ -249,4 +257,5 @@ exit:
     mov     ebx,0
     mov     eax,1
     int     80h
+    ret
 
