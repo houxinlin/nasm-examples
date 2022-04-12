@@ -40,10 +40,10 @@ CMAIN:
     xor     edi, edi
     xor     esi, esi
 
-    ;push   default_path
-    ;push   default_port
-    ;push   default_media
-    ;push   3
+   ; push   default_path
+   ; push   default_port
+   ; push   default_media
+  ;  push   3
  
     call   loadBindPort
     mov   dword[port],ebx
@@ -107,13 +107,11 @@ accept:
     int     80h
  
     mov     esi, eax          ;;将客户端描述符保存到esi中
-
-
     mov     eax, 2
     int     80h
     cmp     eax, 0
-   jz      read
-   jmp     accept
+    jz      read
+    jmp     accept
     
 read:
     mov     edx,6
@@ -200,7 +198,7 @@ write:
     int     80h 
     
 hasNext:  
-    pop     eax         ;;文件描述符传递给readFile
+    pop     eax         ;;取出文件描述符将传递给readFile
     push    eax
     call    readFile      ;;调用之后eax保存读取的大小，fileContents保存文件内容
     push    eax
@@ -211,8 +209,10 @@ hasNext:
     int     80h 
     pop     eax             ;;读取的文件字节数
     cmp     eax,0
-    call    closeFile
-    jz      closeSocket
+    pop     eax            ;;文件描述号
+    jz      closeSocketAndFd
+
+    push    eax    
     jmp     hasNext
 notfound:
     mov     edx,76
@@ -220,14 +220,12 @@ notfound:
     mov     ebx, esi 
     mov     eax, 4  
     int     80h 
-closeSocket:
+closeSocketAndFd:
     ;;关闭客户端socket
-
-    push    2
-    push    esi
-    mov     ecx, esp
-    mov     ebx, 13
-    mov     eax, 102
+    call    closeFile
+    mov     ecx,2
+    mov     ebx, esi
+    mov     eax, 0x175
     int     80h
     
     cmp     eax,0
