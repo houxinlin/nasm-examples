@@ -1,0 +1,30 @@
+org 0x7c00
+
+start:
+
+	mov ah,0x00
+	int 16h
+
+
+toupperCase:
+    push ax
+    mov ah,02h
+    int 16h
+    
+    shr al,7
+    and al,1
+
+    cmp al,0
+    pop ax
+    je print
+    sub al,32
+
+
+print:
+	mov  ah , 0eh
+	int 10h
+    jmp  start
+    
+
+times 510 - ($ -$$) db 0
+dw 0xaa55

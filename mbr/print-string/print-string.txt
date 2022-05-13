@@ -1,0 +1,33 @@
+org 0x7c00
+
+mov ah,86h
+mov cx,10h
+mov dx,4240h  
+
+
+int 15h
+
+mov ax,0600h
+mov bx,0700h
+mov cx,0
+mov dx,0184h
+int 10h
+
+mov ax,1301h
+mov bx,000fh
+mov dx,0000h
+    
+
+mov cx,10
+
+
+
+mov bp,msg1
+
+int 10h
+jmp msg1end
+msg1 db "hello, world! "
+msg1end:
+
+times 510 - ($ -$$) db 0
+dw 0xaa55
