@@ -12,7 +12,7 @@ _next
 	    add dx,48
 	    mov ax,dx
 	    mov ah,0eh
-	    mov bh,0
+
 	    int 10h
 	    inc bx
 	    push cx
